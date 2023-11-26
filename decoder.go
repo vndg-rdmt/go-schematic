@@ -2,60 +2,48 @@ package schematic
 
 import (
 	"bytes"
-	"encoding/json"
-	"io"
+
 	"reflect"
+
+	"github.com/goccy/go-json"
 )
 
 // Decoder struct which holds schema for the expected payload.
 // SchemaDecoder compares paylod before decoding with the schema.
 type SchemaDecoder[T any] struct {
-	Schema  map[string]any
-	Marsh   func(v any) ([]byte, error)
-	UnMarsh func(data []byte, v any) error
-	Decoder func(r io.Reader) *json.Decoder
+	Schema map[string]any
 }
 
 // Creates schema of the given model
-func (self *SchemaDecoder[T]) createSchema(m any) (map[string]any, error) {
+func createSchema(m any) (map[string]any, error) {
 	schema := make(map[string]any)
 
-	if b, err := self.Marsh(m); err != nil {
+	if b, err := json.Marshal(m); err != nil {
 		return schema, err
 
 	} else {
-		return schema, self.UnMarsh(b, &schema)
+		return schema, json.Unmarshal(b, &schema)
 	}
 }
 
 // Creates new schema decoder.
-func NewSchemaDecoder[T any](
-	marsh func(v any) ([]byte, error),
-	unmarsh func(data []byte, v any) error,
-	decoder func(r io.Reader) *json.Decoder,
+func NewSchemaDecoder[T any]() *SchemaDecoder[T] {
 
-) *SchemaDecoder[T] {
-
-	self := &SchemaDecoder[T]{
-		Marsh:   marsh,
-		UnMarsh: unmarsh,
-		Decoder: decoder,
-	}
-
-	b, err := self.createSchema(new(T))
+	b, err := createSchema(new(T))
 	if err != nil {
 		return nil
 	}
 
-	self.Schema = b
-	return self
+	return &SchemaDecoder[T]{
+		Schema: b,
+	}
 }
 
 // Decodes payload with schema comparasing
 func (self *SchemaDecoder[T]) Decode(raw []byte) *T {
 	r := make(map[string]any)
 
-	if err := self.Decoder(bytes.NewReader(raw)).Decode(&r); err != nil {
+	if err := json.NewDecoder(bytes.NewReader(raw)).Decode(&r); err != nil {
 		return nil
 	}
 
