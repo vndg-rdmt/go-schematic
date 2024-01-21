@@ -27,9 +27,9 @@ func createSchema(m any) (map[string]any, error) {
 }
 
 // Creates new schema decoder.
-func NewSchemaDecoder[T any]() *SchemaDecoder[T] {
+func NewSchemaDecoder[T any](v T) *SchemaDecoder[T] {
 
-	b, err := createSchema(new(T))
+	b, err := createSchema(v)
 	if err != nil {
 		return nil
 	}
